@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id          Int      @id @default(autoincrement())
+  image       String   // 사진 (Base64)
+  description String   // 한줄평
+  temp        Int      // 당시 기온
+  status      String   // 당시 날씨 상태 (맑음 등)
+  age         Int      // 작성자 나이
+  height      Int      // 작성자 키
+  weight      Int      // 작성자 몸무게
+  gender      String   // 작성자 성별
+  likes       Int      @default(0)
+  dislikes    Int      @default(0)
+  createdAt   DateTime @default(now())
+}
