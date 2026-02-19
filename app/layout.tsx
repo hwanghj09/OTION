@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import { getCurrentUser } from "@/lib/auth";
+import { signOut } from "@/app/auth/actions";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -13,7 +15,9 @@ export const metadata: Metadata = {
   description: "날씨와 신체 정보에 맞는 최적의 패션을 추천합니다.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser();
+
   return (
     <html lang="ko">
       <body className={`${outfit.className} antialiased`}>
@@ -41,6 +45,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 >
                   커뮤니티
                 </Link>
+                {user ? (
+                  <>
+                    <span className="flex-1 rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-2 text-center text-sm font-semibold text-[#6c422d] sm:flex-none">
+                      {user.name || user.email}
+                    </span>
+                    <form action={signOut} className="flex-1 sm:flex-none">
+                      <button
+                        type="submit"
+                        className="w-full rounded-xl border border-[#f0c3b0] bg-[#fff0ea] px-4 py-2 text-sm font-bold text-[#a3452a] hover:bg-[#ffe5db]"
+                      >
+                        로그아웃
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="flex-1 rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-2 text-center text-sm font-bold text-[#6c422d] hover:bg-[#fff0e4] sm:flex-none"
+                    >
+                      로그인
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="flex-1 rounded-xl border border-[#f0c6ac] bg-[#ffeede] px-4 py-2 text-center text-sm font-bold text-[#8c4929] hover:bg-[#ffe4ce] sm:flex-none"
+                    >
+                      회원가입
+                    </Link>
+                  </>
+                )}
               </nav>
             </div>
           </header>

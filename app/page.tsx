@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { CloudSun, Loader2, MapPin, Sparkles, Wind } from "lucide-react";
-import { getAIAdvice } from "./actions";
+import { CloudSun, Loader2, MapPin, Sparkles, Trash2, Wind } from "lucide-react";
+import { addWardrobeItem, deleteWardrobeItem, getAIAdvice, getWardrobeItems } from "./actions";
 
 type FormState = {
   gender: string;
@@ -29,6 +29,15 @@ type AIResult = {
   dustAdvice: string;
 };
 
+type WardrobeItem = {
+  id: number;
+  category: string;
+  name: string;
+  color: string;
+  season: string;
+  image: string;
+};
+
 const initialForm: FormState = {
   gender: "남성",
   age: "25",
@@ -44,8 +53,18 @@ export default function AIRecommendationPage() {
   const [aiResult, setAiResult] = useState<AIResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
+  const [wardrobe, setWardrobe] = useState<WardrobeItem[]>([]);
+  const [wardrobeForm, setWardrobeForm] = useState({
+    category: "상의",
+    name: "",
+    color: "",
+    season: "사계절",
+    image: "",
+  });
 
   useEffect(() => {
+    getWardrobeItems().then((items) => setWardrobe(items as WardrobeItem[]));
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -80,9 +99,42 @@ export default function AIRecommendationPage() {
     if (!weather) return;
 
     setLoading(true);
-    const result = await getAIAdvice({ ...info, ...weather });
+    const result = await getAIAdvice({ ...info, ...weather, wardrobe });
     setAiResult(result);
     setLoading(false);
+  };
+
+  const submitWardrobeItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!wardrobeForm.name.trim() || !wardrobeForm.image) return;
+
+    await addWardrobeItem({
+      category: wardrobeForm.category,
+      name: wardrobeForm.name.trim(),
+      color: wardrobeForm.color.trim() || "기본색",
+      season: wardrobeForm.season,
+      image: wardrobeForm.image,
+    });
+    const items = await getWardrobeItems();
+    setWardrobe(items as WardrobeItem[]);
+    setWardrobeForm({ ...wardrobeForm, name: "", color: "", image: "" });
+  };
+
+  const removeWardrobeItem = async (id: number) => {
+    await deleteWardrobeItem(id);
+    const items = await getWardrobeItems();
+    setWardrobe(items as WardrobeItem[]);
+  };
+
+  const onWardrobeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setWardrobeForm((prev) => ({ ...prev, image: String(reader.result || "") }));
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -242,6 +294,91 @@ export default function AIRecommendationPage() {
           </form>
         </section>
       </div>
+
+      <section className="panel reveal-up [animation-delay:240ms] p-5 sm:p-7">
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#ce6237]">My Closet</p>
+            <h3 className="mt-2 text-2xl font-extrabold text-[#3f2516]">내 옷장</h3>
+          </div>
+          <span className="rounded-full bg-[#fff0e2] px-3 py-1 text-xs font-bold text-[#8f4b29]">{wardrobe.length}개</span>
+        </div>
+
+        <form onSubmit={submitWardrobeItem} className="grid grid-cols-1 gap-3 sm:grid-cols-5">
+          <select
+            value={wardrobeForm.category}
+            onChange={(e) => setWardrobeForm({ ...wardrobeForm, category: e.target.value })}
+            className="rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-3 py-3 text-sm outline-none focus:border-[#ef8354]"
+          >
+            <option>상의</option>
+            <option>하의</option>
+            <option>아우터</option>
+            <option>신발</option>
+            <option>액세서리</option>
+          </select>
+          <input
+            placeholder="아이템 이름"
+            value={wardrobeForm.name}
+            onChange={(e) => setWardrobeForm({ ...wardrobeForm, name: e.target.value })}
+            className="rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-3 py-3 text-sm outline-none focus:border-[#ef8354]"
+          />
+          <input
+            placeholder="색상"
+            value={wardrobeForm.color}
+            onChange={(e) => setWardrobeForm({ ...wardrobeForm, color: e.target.value })}
+            className="rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-3 py-3 text-sm outline-none focus:border-[#ef8354]"
+          />
+          <label className="cursor-pointer rounded-xl border border-dashed border-[#efc8ac] bg-[#fff7f0] px-3 py-3 text-center text-xs font-semibold text-[#8f4b29]">
+            {wardrobeForm.image ? "사진 변경" : "사진 추가"}
+            <input type="file" accept="image/*" onChange={onWardrobeImageChange} className="hidden" />
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={wardrobeForm.season}
+              onChange={(e) => setWardrobeForm({ ...wardrobeForm, season: e.target.value })}
+              className="w-full rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-3 py-3 text-sm outline-none focus:border-[#ef8354]"
+            >
+              <option>사계절</option>
+              <option>봄/가을</option>
+              <option>여름</option>
+              <option>겨울</option>
+            </select>
+            <button className="rounded-xl bg-[#1f2a37] px-4 py-3 text-sm font-bold text-white">추가</button>
+          </div>
+        </form>
+
+        {wardrobeForm.image && (
+          <div className="mt-3 overflow-hidden rounded-xl border border-[#f0d7c3] bg-[#fffaf6] p-2">
+            <img src={wardrobeForm.image} alt="옷장 미리보기" className="h-28 w-full rounded-lg object-cover sm:h-36" />
+          </div>
+        )}
+
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {wardrobe.map((item) => (
+            <div key={item.id} className="rounded-xl border border-[#f0d7c3] bg-[#fffaf6] p-2">
+              <img src={item.image} alt={item.name} className="h-36 w-full rounded-lg object-cover" />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-[#8f4b29]">{item.category}</p>
+                  <p className="text-sm font-semibold text-[#3f2516]">{item.name}</p>
+                  <p className="text-xs text-[#7d5a45]">{item.color} · {item.season}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeWardrobeItem(item.id)}
+                  className="rounded-lg bg-[#ffe9df] p-2 text-[#a6452a]"
+                  aria-label="아이템 삭제"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {wardrobe.length === 0 && (
+            <p className="text-sm text-[#7d5a45]">아직 등록된 아이템이 없습니다. 옷을 추가해보세요.</p>
+          )}
+        </div>
+      </section>
     </main>
   );
 }

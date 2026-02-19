@@ -13,8 +13,13 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // src/app/actions.ts 수정
 
 export async function getAIAdvice(data: any) {
-  const { gender, age, height, weight, style, purpose, temp, dust, status } = data;
+  const { gender, age, height, weight, style, purpose, temp, dust, status, wardrobe } = data;
   const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
+  const wardrobeText = Array.isArray(wardrobe) && wardrobe.length > 0
+    ? wardrobe.map((item: { category: string; name: string; color: string; season: string }) =>
+      `- ${item.category}: ${item.name} (${item.color}, ${item.season})`
+    ).join("\n")
+    : "- 등록된 옷 없음";
 
   const prompt = `당신은 세계적인 패션 스타일리스트입니다. 
     다음 사용자의 상세 정보를 바탕으로 'TPO(시간, 장소, 상황)'에 완벽히 맞는 코디를 추천해주세요.
@@ -30,11 +35,15 @@ export async function getAIAdvice(data: any) {
     - 날씨 상태: ${status}
     - 미세먼지: ${dust} (농도 수치)
 
+    [사용자 옷장]
+    ${wardrobeText}
+
     [요구사항]
     1. ${age}세라는 나이에 어울리면서 ${style} 느낌을 살린 코디여야 합니다.
     2. ${purpose}라는 상황에 적절한 격식을 갖춰주세요.
     3. 현재 기온(${temp}도)에서 춥거나 덥지 않은 구체적인 상/하의 및 외투를 추천하세요.
     4. 어울리는 신발과 액세서리도 포함하세요.
+    5. 옷장에 등록된 아이템을 우선적으로 활용하세요.
 
     응답은 반드시 아래 JSON 형식으로만 하세요:
     {
@@ -66,6 +75,30 @@ export async function createPost(formData: any) {
             weight: parseInt(formData.weight),
             gender: formData.gender,
         }
+    });
+}
+
+export async function getWardrobeItems() {
+    return await prisma.wardrobeItem.findMany({
+        orderBy: { createdAt: "desc" },
+    });
+}
+
+export async function addWardrobeItem(formData: { category: string; name: string; color: string; season: string; image: string }) {
+    return await prisma.wardrobeItem.create({
+        data: {
+            category: formData.category,
+            name: formData.name,
+            color: formData.color,
+            season: formData.season,
+            image: formData.image,
+        },
+    });
+}
+
+export async function deleteWardrobeItem(id: number) {
+    return await prisma.wardrobeItem.delete({
+        where: { id },
     });
 }
 

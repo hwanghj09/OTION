@@ -23,6 +23,16 @@ model Post {
   reactions   Reaction[]
 }
 
+model WardrobeItem {
+  id        Int      @id @default(autoincrement())
+  category  String
+  name      String
+  color     String
+  season    String
+  image     String
+  createdAt DateTime @default(now())
+}
+
 model Reaction {
   id        Int      @id @default(autoincrement())
   postId    Int
@@ -32,4 +42,25 @@ model Reaction {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, visitorId])
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
