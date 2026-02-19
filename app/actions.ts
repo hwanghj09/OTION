@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import OpenAI from "openai";
 import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
+import { getCurrentUser } from "@/lib/auth";
 
 // 추가적인 옵션 없이 깨끗하게 생성합니다.
 const prisma = new PrismaClient();
@@ -13,15 +14,15 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // src/app/actions.ts 수정
 
 export async function getAIAdvice(data: any) {
-  const { gender, age, height, weight, style, purpose, temp, dust, status, wardrobe } = data;
-  const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
-  const wardrobeText = Array.isArray(wardrobe) && wardrobe.length > 0
-    ? wardrobe.map((item: { category: string; name: string; color: string; season: string }) =>
-      `- ${item.category}: ${item.name} (${item.color}, ${item.season})`
-    ).join("\n")
-    : "- 등록된 옷 없음";
+    const { gender, age, height, weight, style, purpose, temp, dust, status, wardrobe } = data;
+    const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
+    const wardrobeText = Array.isArray(wardrobe) && wardrobe.length > 0
+        ? wardrobe.map((item: { category: string; name: string; color: string; season: string }) =>
+            `- ${item.category}: ${item.name} (${item.color}, ${item.season})`
+        ).join("\n")
+        : "- 등록된 옷 없음";
 
-  const prompt = `당신은 세계적인 패션 스타일리스트입니다. 
+    const prompt = `당신은 세계적인 패션 스타일리스트입니다. 
     다음 사용자의 상세 정보를 바탕으로 'TPO(시간, 장소, 상황)'에 완벽히 맞는 코디를 추천해주세요.
 
     [사용자 프로필]
@@ -50,20 +51,41 @@ export async function getAIAdvice(data: any) {
       "clothes": "추천 의상 (상/하의/외투/신발)",
       "style": "스타일링 핵심 팁 (나이와 상황 고려)",
       "colors": "어울리는 색상 조합",
-      "dustAdvice": "날씨/미세먼지 관련 주의사항"
+      "dustAdvice": "날씨/미세먼지 관련 주의사항",
+      "imagePrompt": "DALL-E를 위한 영어 프롬프트. 전신 샷, 사용자의 특징(성별, 나이, 체형)과 추천 의상을 상세히 묘사. 배경은 심플하게."
     }`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "system", content: "전문 패션 스타일리스트로서 조언합니다." }, { role: "user", content: prompt }],
-    response_format: { type: "json_object" },
-  });
+    const textResponse = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: "전문 패션 스타일리스트로서 조언합니다." }, { role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+    });
 
-  return JSON.parse(response.choices[0].message.content || "{}");
+    const result = JSON.parse(textResponse.choices[0].message.content || "{}");
+
+    let imageUrl = "";
+    if (result.imagePrompt) {
+        try {
+            const imageResponse = await openai.images.generate({
+                model: "dall-e-3",
+                prompt: result.imagePrompt,
+                n: 1,
+                size: "1024x1024",
+            });
+            imageUrl = imageResponse.data[0].url || "";
+        } catch (e) {
+            console.error("Image generation failed:", e);
+        }
+    }
+
+    return { ...result, imageUrl };
 }
 
 
 export async function createPost(formData: any) {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("로그인이 필요합니다.");
+
     return await prisma.post.create({
         data: {
             image: formData.image,
@@ -74,17 +96,25 @@ export async function createPost(formData: any) {
             height: parseInt(formData.height),
             weight: parseInt(formData.weight),
             gender: formData.gender,
+            userId: user.id,
         }
     });
 }
 
 export async function getWardrobeItems() {
+    const user = await getCurrentUser();
+    if (!user) return [];
+
     return await prisma.wardrobeItem.findMany({
+        where: { userId: user.id },
         orderBy: { createdAt: "desc" },
     });
 }
 
 export async function addWardrobeItem(formData: { category: string; name: string; color: string; season: string; image: string }) {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("로그인이 필요합니다.");
+
     return await prisma.wardrobeItem.create({
         data: {
             category: formData.category,
@@ -92,21 +122,25 @@ export async function addWardrobeItem(formData: { category: string; name: string
             color: formData.color,
             season: formData.season,
             image: formData.image,
+            userId: user.id,
         },
     });
 }
 
 export async function deleteWardrobeItem(id: number) {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("로그인이 필요합니다.");
+
     return await prisma.wardrobeItem.delete({
-        where: { id },
+        where: { id, userId: user.id },
     });
 }
 
 type PostFilters = {
-  search?: string;
-  minTemp?: number;
-  maxTemp?: number;
-  sort?: "latest" | "likes";
+    search?: string;
+    minTemp?: number;
+    maxTemp?: number;
+    sort?: "latest" | "likes";
 };
 
 // 커뮤니티: 게시물 가져오기
