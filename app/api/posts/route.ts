@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 // 1. 모든 게시물 불러오기 (GET)
 export async function GET() {
@@ -21,6 +22,14 @@ export async function GET() {
 // 2. 새로운 게시물 저장하기 (POST)
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "로그인이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { image, description, temp, status, age, height, weight, gender } = body;
 
@@ -42,6 +51,7 @@ export async function POST(request: Request) {
         height: Number(height ?? 170),
         weight: Number(weight ?? 65),
         gender: gender || "미지정",
+        userId: user.id,
       },
     });
 

@@ -72,7 +72,7 @@ export async function getAIAdvice(data: any) {
                 n: 1,
                 size: "1024x1024",
             });
-            imageUrl = imageResponse.data[0].url || "";
+            imageUrl = imageResponse.data?.[0]?.url ?? "";
         } catch (e) {
             console.error("Image generation failed:", e);
         }
