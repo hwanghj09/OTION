@@ -1,30 +1,84 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Sun, Wind, Loader2, MapPin, Sparkles, Shirt, Star, Ruler, CloudRain } from 'lucide-react';
-import { getAIAdvice } from './actions';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { CloudSun, Loader2, MapPin, Sparkles, Wind } from "lucide-react";
+import { getAIAdvice } from "./actions";
+
+type FormState = {
+  gender: string;
+  age: string;
+  height: string;
+  weight: string;
+  style: string;
+  purpose: string;
+};
+
+type WeatherInfo = {
+  temp: number;
+  status: string;
+  dust: number;
+  city: string;
+  icon: string;
+};
+
+type AIResult = {
+  clothes: string;
+  style: string;
+  colors: string;
+  dustAdvice: string;
+};
+
+const initialForm: FormState = {
+  gender: "남성",
+  age: "25",
+  height: "175",
+  weight: "70",
+  style: "캐주얼",
+  purpose: "일상",
+};
 
 export default function AIRecommendationPage() {
-  const [info, setInfo] = useState({ gender: '남성', age: '25', height: '175', weight: '70', style: '캐주얼', purpose: '일상' });
-  const [weather, setWeather] = useState<any>(null);
-  const [aiResult, setAiResult] = useState<any>(null);
+  const [info, setInfo] = useState<FormState>(initialForm);
+  const [weather, setWeather] = useState<WeatherInfo | null>(null);
+  const [aiResult, setAiResult] = useState<AIResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      const API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-      try {
-        const wRes = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric&lang=kr`);
-        const aRes = await axios.get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${latitude}&lon=${longitude}&appid=${API_KEY}`);
-        setWeather({ temp: Math.round(wRes.data.main.temp), status: wRes.data.weather[0].description, dust: aRes.data.list[0].components.pm10, city: wRes.data.name, icon: wRes.data.weather[0].icon });
-      } catch (e) { console.error("날씨 정보 호출 실패"); }
-    });
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const key = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+
+        try {
+          const weatherRes = await axios.get(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${key}&units=metric&lang=kr`
+          );
+          const airRes = await axios.get(
+            `https://api.openweathermap.org/data/2.5/air_pollution?lat=${latitude}&lon=${longitude}&appid=${key}`
+          );
+
+          setWeather({
+            temp: Math.round(weatherRes.data.main.temp),
+            status: weatherRes.data.weather[0].description,
+            dust: airRes.data.list[0].components.pm10,
+            city: weatherRes.data.name,
+            icon: weatherRes.data.weather[0].icon,
+          });
+          setGeoError("");
+        } catch {
+          setGeoError("날씨 정보를 불러오지 못했습니다.");
+        }
+      },
+      () => setGeoError("위치 권한이 필요합니다. 권한 허용 후 다시 시도해주세요.")
+    );
   }, []);
 
-  const handleAIRequest = async (e: React.FormEvent) => {
+  const requestAdvice = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!weather) return;
+
     setLoading(true);
     const result = await getAIAdvice({ ...info, ...weather });
     setAiResult(result);
@@ -32,212 +86,161 @@ export default function AIRecommendationPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-      <div className="max-w-lg mx-auto px-6 py-12 space-y-8">
-        
-        {/* Header */}
-        <header className="text-center space-y-3 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-full">
-            <Sparkles className="text-indigo-600" size={16}/>
-            <span className="text-xs font-semibold text-indigo-700 tracking-wide">AI STYLE ADVISOR</span>
+    <main className="space-y-5 pb-14">
+      <section className="panel reveal-up relative overflow-hidden p-5 sm:p-7">
+        <span className="floating-dot right-3 top-2 h-20 w-20 bg-[#ffd3a6]" />
+        <span className="floating-dot bottom-0 left-10 h-14 w-14 bg-[#bfe8d8]" />
+        <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#ce6237]">Daily Outfit Engine</p>
+            <h1 className="font-display text-3xl font-extrabold tracking-tight text-[#402312] sm:text-4xl">오늘 뭐 입지? 바로 끝내기</h1>
+            <p className="mt-2 text-sm text-[#7a5a47]">날씨와 체형, 목적까지 합쳐서 현실적인 코디를 추천합니다.</p>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight" style={{fontFamily: 'Pretendard, sans-serif'}}>
-            오늘의 스타일 추천
-          </h1>
-          <p className="text-slate-500 text-sm">날씨와 당신의 취향을 분석해드립니다</p>
-        </header>
+          <div className="panel-soft flex items-center gap-3 px-4 py-2">
+            <Sparkles size={16} className="text-[#d86131]" />
+            <span className="text-xs font-semibold text-[#7a4022]">AI 기반 맞춤 추천</span>
+          </div>
+        </div>
+      </section>
 
-        {/* Weather Card */}
-        {weather && (
-          <section className="relative bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-3xl p-8 text-white shadow-lg shadow-indigo-200/50 overflow-hidden animate-in fade-in slide-in-from-top-6 duration-700 delay-100">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/3"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-6 text-indigo-200">
-                <MapPin size={14} strokeWidth={2.5}/>
-                <span className="text-xs font-medium tracking-wide">{weather.city}</span>
-              </div>
-              
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-7xl font-bold tracking-tighter" style={{fontFamily: 'Outfit, sans-serif'}}>{weather.temp}</span>
-                    <span className="text-3xl font-light text-indigo-200">°C</span>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_1.5fr]">
+        <aside className="space-y-5 reveal-up [animation-delay:120ms]">
+          <section className="panel brand-gradient overflow-hidden p-5 text-[#3b2214] sm:p-6">
+            {weather ? (
+              <>
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em]">
+                    <MapPin size={14} />
+                    {weather.city}
                   </div>
-                  <p className="text-base font-medium text-indigo-100 flex items-center gap-2">
-                    <CloudRain size={18} strokeWidth={2}/>
-                    {weather.status}
-                  </p>
+                  <img src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`} className="h-14 w-14" alt="weather" />
                 </div>
-                
-                <div className="flex-shrink-0">
-                  <img 
-                    src={`https://openweathermap.org/img/wn/${weather.icon}@4x.png`} 
-                    className="w-28 h-28 drop-shadow-lg" 
-                    alt="weather icon" 
-                  />
+                <div className="flex items-end gap-2">
+                  <strong className="font-display text-6xl leading-none">{weather.temp}</strong>
+                  <span className="mb-1 text-2xl font-semibold">°C</span>
                 </div>
+                <p className="mt-2 flex items-center gap-2 text-sm font-semibold">
+                  <CloudSun size={16} />
+                  {weather.status}
+                </p>
+                <div className="mt-5 border-t border-[#cc845f] pt-4 text-sm font-semibold">
+                  미세먼지 {weather.dust} μg/m³
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2 py-8 text-sm font-semibold">
+                <p>위치 기반 날씨를 가져오는 중입니다.</p>
+                {geoError && <p className="rounded-lg bg-white/45 px-3 py-2 text-[#71391e]">{geoError}</p>}
               </div>
-
-              {/* Air Quality Indicator */}
-              <div className="mt-6 pt-6 border-t border-indigo-500/30">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-indigo-200">미세먼지</span>
-                  <span className="text-sm font-semibold">{weather.dust} μg/m³</span>
-                </div>
-              </div>
-            </div>
+            )}
           </section>
-        )}
 
-        {/* Input Form */}
-        <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/60 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-          <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
-              <Shirt className="text-indigo-600" size={20}/>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900" style={{fontFamily: 'Pretendard, sans-serif'}}>
-              맞춤 설정
-            </h3>
+          {aiResult && weather && (
+            <section className="panel bg-[#fffdf9] p-5 sm:p-6">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#ca6136]">Result</p>
+              <h2 className="mt-2 text-2xl font-extrabold text-[#3d2417]">{aiResult.clothes}</h2>
+              <p className="mt-4 text-sm leading-relaxed text-[#5f4333]">{aiResult.style}</p>
+              <div className="mt-4 rounded-xl bg-[#fff3e9] px-3 py-2 text-sm font-semibold text-[#75432b]">
+                추천 컬러: {aiResult.colors}
+              </div>
+              <div
+                className={`mt-3 flex items-start gap-2 rounded-xl px-3 py-3 text-sm ${
+                  weather.dust > 80 ? "bg-[#ffe9e5] text-[#8f3020]" : "bg-[#e8f7ef] text-[#1f6a52]"
+                }`}
+              >
+                <Wind size={16} className="mt-0.5" />
+                <span>{aiResult.dustAdvice}</span>
+              </div>
+            </section>
+          )}
+        </aside>
+
+        <section className="panel reveal-up [animation-delay:180ms] p-5 sm:p-7">
+          <div className="mb-6">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#ce6237]">Profile Setup</p>
+            <h3 className="mt-2 text-2xl font-extrabold text-[#3f2516]">내 정보로 코디 생성</h3>
           </div>
-          
-          <form onSubmit={handleAIRequest} className="space-y-5">
-            {/* Personal Info */}
-            <div className="space-y-3">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">기본 정보</label>
-              <div className="grid grid-cols-2 gap-4">
-                <input 
-                  type="number" 
-                  placeholder="나이" 
-                  className="px-5 py-4 bg-slate-50 rounded-2xl outline-none text-sm font-medium text-slate-900 border border-transparent focus:border-indigo-200 focus:bg-white transition-all placeholder:text-slate-400" 
-                  value={info.age} 
-                  onChange={e=>setInfo({...info, age: e.target.value})} 
-                />
-                <select 
-                  className="px-5 py-4 bg-slate-50 rounded-2xl outline-none text-sm font-medium text-slate-900 border border-transparent focus:border-indigo-200 focus:bg-white transition-all" 
-                  value={info.gender} 
-                  onChange={e=>setInfo({...info, gender: e.target.value})}
-                >
-                  <option>남성</option>
-                  <option>여성</option>
-                </select>
-              </div>
-            </div>
 
-            {/* Physical Info */}
-            <div className="space-y-3">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">체형 정보</label>
-              <div className="grid grid-cols-2 gap-4">
-                <input 
-                  type="number" 
-                  placeholder="키 (cm)" 
-                  className="px-5 py-4 bg-slate-50 rounded-2xl outline-none text-sm font-medium text-slate-900 border border-transparent focus:border-indigo-200 focus:bg-white transition-all placeholder:text-slate-400" 
-                  value={info.height} 
-                  onChange={e=>setInfo({...info, height: e.target.value})} 
-                />
-                <input 
-                  type="number" 
-                  placeholder="몸무게 (kg)" 
-                  className="px-5 py-4 bg-slate-50 rounded-2xl outline-none text-sm font-medium text-slate-900 border border-transparent focus:border-indigo-200 focus:bg-white transition-all placeholder:text-slate-400" 
-                  value={info.weight} 
-                  onChange={e=>setInfo({...info, weight: e.target.value})} 
-                />
-              </div>
-            </div>
+          <form onSubmit={requestAdvice} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#7d5a45]">나이</span>
+              <input
+                type="number"
+                value={info.age}
+                onChange={(e) => setInfo({ ...info, age: e.target.value })}
+                className="w-full rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#ef8354]"
+              />
+            </label>
 
-            {/* Style Preferences */}
-            <div className="space-y-3">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">스타일 선호도</label>
-              <div className="grid grid-cols-2 gap-4">
-                <select 
-                  className="px-5 py-4 bg-slate-50 rounded-2xl outline-none text-sm font-medium text-slate-900 border border-transparent focus:border-indigo-200 focus:bg-white transition-all" 
-                  value={info.style} 
-                  onChange={e=>setInfo({...info, style: e.target.value})}
-                >
-                  <option>캐주얼</option>
-                  <option>미니멀</option>
-                  <option>스트릿</option>
-                  <option>비즈니스</option>
-                </select>
-                <select 
-                  className="px-5 py-4 bg-slate-50 rounded-2xl outline-none text-sm font-medium text-slate-900 border border-transparent focus:border-indigo-200 focus:bg-white transition-all" 
-                  value={info.purpose} 
-                  onChange={e=>setInfo({...info, purpose: e.target.value})}
-                >
-                  <option>일상</option>
-                  <option>데이트</option>
-                  <option>출근</option>
-                  <option>여행</option>
-                </select>
-              </div>
-            </div>
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#7d5a45]">성별</span>
+              <select
+                value={info.gender}
+                onChange={(e) => setInfo({ ...info, gender: e.target.value })}
+                className="w-full rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#ef8354]"
+              >
+                <option>남성</option>
+                <option>여성</option>
+              </select>
+            </label>
 
-            {/* Submit Button */}
-            <button 
-              disabled={loading || !weather} 
-              className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white py-5 rounded-2xl font-semibold text-base shadow-lg shadow-slate-900/10 flex justify-center items-center gap-3 active:scale-[0.98] transition-all duration-200 mt-8"
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#7d5a45]">키 (cm)</span>
+              <input
+                type="number"
+                value={info.height}
+                onChange={(e) => setInfo({ ...info, height: e.target.value })}
+                className="w-full rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#ef8354]"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#7d5a45]">몸무게 (kg)</span>
+              <input
+                type="number"
+                value={info.weight}
+                onChange={(e) => setInfo({ ...info, weight: e.target.value })}
+                className="w-full rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#ef8354]"
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#7d5a45]">스타일</span>
+              <select
+                value={info.style}
+                onChange={(e) => setInfo({ ...info, style: e.target.value })}
+                className="w-full rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#ef8354]"
+              >
+                <option>캐주얼</option>
+                <option>미니멀</option>
+                <option>스트릿</option>
+                <option>비즈니스</option>
+              </select>
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#7d5a45]">외출 목적</span>
+              <select
+                value={info.purpose}
+                onChange={(e) => setInfo({ ...info, purpose: e.target.value })}
+                className="w-full rounded-xl border border-[#f0d7c3] bg-[#fffaf6] px-4 py-3 text-sm outline-none focus:border-[#ef8354]"
+              >
+                <option>일상</option>
+                <option>데이트</option>
+                <option>출근</option>
+                <option>여행</option>
+              </select>
+            </label>
+
+            <button
+              disabled={loading || !weather}
+              className="sm:col-span-2 mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f2a37] px-5 py-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-[#a8b0ba]"
             >
-              {loading ? (
-                <Loader2 className="animate-spin" size={22} />
-              ) : (
-                <>
-                  <Sparkles size={20} />
-                  AI 스타일 분석 시작
-                </>
-              )}
+              {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+              스타일 분석 시작
             </button>
           </form>
         </section>
-
-        {/* AI Result */}
-        {aiResult && (
-          <section className="bg-white rounded-3xl p-8 shadow-md border-t-4 border-amber-400 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                <Star size={16} fill="#F59E0B" className="text-amber-500"/>
-              </div>
-              <span className="text-xs font-bold text-amber-700 uppercase tracking-widest">AI RECOMMENDATION</span>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Main Recommendation */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6">
-                <h4 className="text-2xl font-bold text-slate-900 leading-tight mb-2" style={{fontFamily: 'Pretendard, sans-serif'}}>
-                  {aiResult.clothes}
-                </h4>
-              </div>
-
-              {/* Styling Guide */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Ruler size={14} className="text-indigo-500"/>
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Styling Guide</span>
-                </div>
-                <p className="text-sm text-slate-700 leading-relaxed pl-6 border-l-2 border-slate-100">
-                  {aiResult.style}
-                </p>
-              </div>
-
-              {/* Dust Advice */}
-              <div className={`flex items-start gap-4 p-5 rounded-2xl ${weather.dust > 80 ? 'bg-red-50 border border-red-100' : 'bg-emerald-50 border border-emerald-100'}`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${weather.dust > 80 ? 'bg-red-100' : 'bg-emerald-100'}`}>
-                  <Wind size={18} className={weather.dust > 80 ? 'text-red-600' : 'text-emerald-600'} strokeWidth={2.5}/>
-                </div>
-                <div className="flex-1">
-                  <p className={`text-xs font-semibold mb-1 ${weather.dust > 80 ? 'text-red-700' : 'text-emerald-700'}`}>
-                    오늘의 미세먼지 TIP
-                  </p>
-                  <p className={`text-sm font-medium leading-relaxed ${weather.dust > 80 ? 'text-red-900' : 'text-emerald-900'}`}>
-                    {aiResult.dustAdvice}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
       </div>
     </main>
   );

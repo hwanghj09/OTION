@@ -22,10 +22,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { image, description, temp } = body;
+    const { image, description, temp, status, age, height, weight, gender } = body;
 
     // 필수 데이터 확인
-    if (!image || !temp) {
+    if (!image || temp === undefined || temp === null) {
       return NextResponse.json(
         { error: "이미지와 기온 정보는 필수입니다." },
         { status: 400 }
@@ -37,6 +37,11 @@ export async function POST(request: Request) {
         image,         // Base64 문자열로 들어온 이미지 데이터
         description: description || "",
         temp: Number(temp),
+        status: status || "정보 없음",
+        age: Number(age ?? 25),
+        height: Number(height ?? 170),
+        weight: Number(weight ?? 65),
+        gender: gender || "미지정",
       },
     });
 

@@ -20,4 +20,16 @@ model Post {
   likes       Int      @default(0)
   dislikes    Int      @default(0)
   createdAt   DateTime @default(now())
+  reactions   Reaction[]
+}
+
+model Reaction {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  visitorId String
+  type      String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, visitorId])
 }

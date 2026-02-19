@@ -3,11 +3,12 @@ import { prisma } from "@/lib/db";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { type } = await request.json(); // 'like' 또는 'dislike'
-    const id = parseInt(params.id);
+    const { id: rawId } = await params;
+    const id = parseInt(rawId);
 
     const updatedPost = await prisma.post.update({
       where: { id },

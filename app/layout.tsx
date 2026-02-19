@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import "./globals.css";
 import Link from "next/link";
-import { Outfit } from 'next/font/google';
+import { Outfit } from "next/font/google";
+import "./globals.css";
 
-const outfit = Outfit({ 
-  subsets: ['latin'],
-  display: 'swap',
+const outfit = Outfit({
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -16,15 +16,36 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body className="bg-slate-50 antialiased">
-        <header className="bg-white/90 backdrop-blur-md p-4 sticky top-0 z-50 border-b flex justify-between items-center max-w-md mx-auto w-full">
-          <Link href="/"><h1 className="text-2xl font-black text-blue-600 italic tracking-tighter cursor-pointer">OTION</h1></Link>
-          <nav className="flex bg-slate-100 p-1 rounded-full">
-            <Link href="/" className="px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white transition">AI 추천</Link>
-            <Link href="/community" className="px-4 py-1.5 rounded-full text-xs font-bold hover:bg-white transition">커뮤니티</Link>
-          </nav>
-        </header>
-        {children}
+      <body className={`${outfit.className} antialiased`}>
+        <div className="page-shell">
+          <header className="panel relative mb-6 overflow-hidden px-4 py-4 sm:px-6 sm:py-5">
+            <span className="floating-dot left-[-12px] top-[-12px] h-14 w-14 bg-[#f7ba94]" />
+            <span className="floating-dot bottom-[-10px] right-10 h-10 w-10 bg-[#9dd9c2]" />
+            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <Link href="/" className="inline-flex items-end gap-3">
+                <strong className="font-display text-3xl font-extrabold tracking-tight text-[#5a2f1b]">OTION</strong>
+                <span className="rounded-full border border-[#f0c09a] bg-[#fff1e5] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#c85f34]">
+                  Studio
+                </span>
+              </Link>
+              <nav className="flex w-full gap-2 sm:w-auto">
+                <Link
+                  href="/"
+                  className="flex-1 rounded-xl border border-[#f2d1b5] bg-[#fff7f0] px-4 py-2 text-center text-sm font-bold text-[#7a4022] hover:bg-[#ffe8d5] sm:flex-none"
+                >
+                  AI 추천
+                </Link>
+                <Link
+                  href="/community"
+                  className="flex-1 rounded-xl border border-[#d2ebdf] bg-[#ecf9f3] px-4 py-2 text-center text-sm font-bold text-[#1f6a52] hover:bg-[#dff3ea] sm:flex-none"
+                >
+                  커뮤니티
+                </Link>
+              </nav>
+            </div>
+          </header>
+          {children}
+        </div>
       </body>
     </html>
   );

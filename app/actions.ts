@@ -2,6 +2,8 @@
 
 import { PrismaClient } from "@prisma/client";
 import OpenAI from "openai";
+import { cookies } from "next/headers";
+import { randomUUID } from "crypto";
 
 // 추가적인 옵션 없이 깨끗하게 생성합니다.
 const prisma = new PrismaClient();
@@ -67,18 +69,134 @@ export async function createPost(formData: any) {
     });
 }
 
+type PostFilters = {
+  search?: string;
+  minTemp?: number;
+  maxTemp?: number;
+  sort?: "latest" | "likes";
+};
+
 // 커뮤니티: 게시물 가져오기
-export async function getPosts() {
-    return await prisma.post.findMany({ orderBy: { createdAt: 'desc' } });
+export async function getPosts(filters: PostFilters = {}) {
+    const {
+        search,
+        minTemp,
+        maxTemp,
+        sort = "latest",
+    } = filters;
+
+    const where = {
+        ...(search
+            ? {
+                OR: [
+                    { description: { contains: search } },
+                    { status: { contains: search } },
+                ],
+            }
+            : {}),
+        ...(typeof minTemp === "number" || typeof maxTemp === "number"
+            ? {
+                temp: {
+                    ...(typeof minTemp === "number" ? { gte: minTemp } : {}),
+                    ...(typeof maxTemp === "number" ? { lte: maxTemp } : {}),
+                },
+            }
+            : {}),
+    };
+
+    const orderBy =
+        sort === "likes"
+            ? [{ likes: "desc" as const }, { createdAt: "desc" as const }]
+            : [{ createdAt: "desc" as const }];
+
+    return await prisma.post.findMany({ where, orderBy });
 }
 
 // 커뮤니티: 반응하기
 export async function updateReaction(id: number, type: 'like' | 'dislike') {
-    return await prisma.post.update({
-        where: { id },
-        data: {
-            likes: type === 'like' ? { increment: 1 } : undefined,
-            dislikes: type === 'dislike' ? { increment: 1 } : undefined,
-        }
+    const cookieStore = await cookies();
+    let visitorId = cookieStore.get("visitor_id")?.value;
+
+    if (!visitorId) {
+        visitorId = randomUUID();
+        cookieStore.set("visitor_id", visitorId, {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 365,
+        });
+    }
+
+    const existing = await prisma.reaction.findUnique({
+        where: {
+            postId_visitorId: {
+                postId: id,
+                visitorId,
+            },
+        },
     });
+
+    if (!existing) {
+        await prisma.$transaction([
+            prisma.reaction.create({
+                data: {
+                    postId: id,
+                    visitorId,
+                    type,
+                },
+            }),
+            prisma.post.update({
+                where: { id },
+                data: {
+                    likes: type === 'like' ? { increment: 1 } : undefined,
+                    dislikes: type === 'dislike' ? { increment: 1 } : undefined,
+                },
+            }),
+        ]);
+
+        return {
+            applied: true,
+            message: "반응이 저장되었습니다.",
+        };
+    }
+
+    if (existing.type === type) {
+        await prisma.$transaction([
+            prisma.reaction.delete({ where: { id: existing.id } }),
+            prisma.post.update({
+                where: { id },
+                data: {
+                    likes: type === 'like' ? { decrement: 1 } : undefined,
+                    dislikes: type === 'dislike' ? { decrement: 1 } : undefined,
+                },
+            }),
+        ]);
+
+        return {
+            applied: true,
+            message: "반응이 취소되었습니다.",
+        };
+    }
+
+    const previousType = existing.type as 'like' | 'dislike';
+
+    await prisma.$transaction([
+        prisma.reaction.update({
+            where: { id: existing.id },
+            data: { type },
+        }),
+        prisma.post.update({
+            where: { id },
+            data: previousType === 'like' ? { likes: { decrement: 1 } } : { dislikes: { decrement: 1 } },
+        }),
+        prisma.post.update({
+            where: { id },
+            data: type === 'like' ? { likes: { increment: 1 } } : { dislikes: { increment: 1 } },
+        }),
+    ]);
+
+    return {
+        applied: true,
+        message: "반응이 변경되었습니다.",
+    };
 }

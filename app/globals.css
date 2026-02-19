@@ -1,226 +1,85 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-/* Pretendard 폰트 import */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-
-/* Outfit 폰트 import */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
-
 :root {
-  /* Light mode colors - Minimal & Modern */
-  --background: #fafafa;
-  --foreground: #0f172a;
-  
-  /* Brand colors */
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --accent: #f59e0b;
-  --accent-foreground: #ffffff;
-  
-  /* Neutral colors */
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  
-  /* Semantic colors */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --background: #fff8f1;
+  --foreground: #1e293b;
+  --surface: #fffcf8;
+  --surface-strong: #fff3e8;
+  --border: #f4d9be;
+  --brand: #ef8354;
+  --brand-strong: #e56b3e;
+  --accent: #3aa17e;
+  --accent-soft: #d7f0e7;
+  --text-soft: #64748b;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: 'Outfit', 'Pretendard', sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark mode colors - Soft & Elegant */
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    
-    /* Brand colors - slightly adjusted for dark mode */
-    --primary: #818cf8;
-    --primary-foreground: #1e1b4b;
-    --accent: #fbbf24;
-    --accent-foreground: #78350f;
-    
-    /* Neutral colors */
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --border: #334155;
-    
-    /* Semantic colors */
-    --success: #34d399;
-    --warning: #fbbf24;
-    --error: #f87171;
-  }
-}
-
-/* Global Styles */
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
+  margin: 0;
   color: var(--foreground);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  line-height: 1.6;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(239, 131, 84, 0.18), transparent 30%),
+    radial-gradient(circle at 85% 20%, rgba(58, 161, 126, 0.16), transparent 28%),
+    linear-gradient(165deg, #fff8f1 0%, #fffaf5 45%, #fff3e8 100%);
+  min-height: 100vh;
 }
 
-/* Typography Utilities */
-.font-display {
-  font-family: 'Outfit', 'Pretendard', sans-serif;
-}
-
-.font-body {
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-}
-
-/* Scrollbar Styling - Minimal */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--muted);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--foreground);
-}
-
-/* Selection */
 ::selection {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  color: #fff;
+  background: var(--brand);
 }
 
-::-moz-selection {
-  background: var(--primary);
-  color: var(--primary-foreground);
+.page-shell {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.25rem;
 }
 
-/* Focus Visible - Accessibility */
-:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+.panel {
+  background: color-mix(in srgb, var(--surface) 90%, #fff);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
 }
 
-/* Smooth Animations */
-@media (prefers-reduced-motion: no-preference) {
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  * {
-    transition-property: color, background-color, border-color, opacity, transform;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-  }
+.panel-soft {
+  background: color-mix(in srgb, var(--surface-strong) 88%, #fff);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, #fff);
+  border-radius: 1.25rem;
 }
 
-/* Remove animations for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+.brand-gradient {
+  background: linear-gradient(120deg, var(--brand) 0%, #ffb165 45%, #ffd486 100%);
 }
 
-/* Custom Utilities */
-.gradient-background {
-  background: linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #eef2ff 100%);
+.floating-dot {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(2px);
+  opacity: 0.6;
 }
 
-@media (prefers-color-scheme: dark) {
-  .gradient-background {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e1b4b 100%);
-  }
-}
-
-.text-balance {
-  text-wrap: balance;
-}
-
-.text-pretty {
-  text-wrap: pretty;
-}
-
-/* Glass Effect Utility */
-.glass {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-@media (prefers-color-scheme: dark) {
-  .glass {
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-}
-
-/* Card Shadow Utility */
-.card-shadow {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-}
-
-.card-shadow-hover {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
-
-/* Input Focus Ring */
-.focus-ring {
-  transition: all 0.2s ease;
-}
-
-.focus-ring:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-/* Button Active State */
-.btn-active {
-  transform: scale(0.98);
-  transition: transform 0.1s ease;
-}
-
-/* Fade In Animation */
-@keyframes fadeIn {
+@keyframes revealUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -228,27 +87,12 @@ body {
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.5s ease-out;
+.reveal-up {
+  animation: revealUp 0.55s ease-out both;
 }
 
-/* Shimmer Loading Effect */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
+@media (max-width: 768px) {
+  .page-shell {
+    padding: 1rem;
   }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--muted) 0%,
-    var(--background) 50%,
-    var(--muted) 100%
-  );
-  background-size: 1000px 100%;
-  animation: shimmer 2s infinite;
 }
